@@ -1,0 +1,67 @@
+name: Create Version Tag
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  create-tag:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep 'version = "' package.nix | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if tag exists
+        id: check-tag
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create version tag
+        if: steps.check-tag.outputs.exists == 'false'
+        run: |
+          git tag -a "v${{ steps.version.outputs.version }}" -m "parallel-cli v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: Update latest tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git push origin :refs/tags/latest 2>/dev/null || true
+          git tag -d latest 2>/dev/null || true
+          git tag -a "latest" -m "Latest: v$VERSION"
+          git push origin latest
+
+      - name: Summary
+        run: |
+          echo "## Tags" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Tag | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check-tag.outputs.exists }}" == "false" ]; then
+            echo "| v${{ steps.version.outputs.version }} | Created |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| v${{ steps.version.outputs.version }} | Already exists |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "| latest | Updated -> v${{ steps.version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
