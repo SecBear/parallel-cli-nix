@@ -1,44 +1,49 @@
 {
   description = "Nix flake for parallel-cli - AI-powered web search & research CLI from parallel.ai";
 
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    flake-parts.url = "github:hercules-ci/flake-parts";
-  };
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
-  outputs = inputs:
-    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+  outputs = { self, nixpkgs }:
+    let
       systems = [
         "x86_64-linux"
         "aarch64-linux"
         "x86_64-darwin"
         "aarch64-darwin"
       ];
-
-      perSystem = { pkgs, system, lib, ... }:
+      forAllSystems = nixpkgs.lib.genAttrs systems;
+      pkgsFor = system: import nixpkgs { inherit system; };
+    in
+    {
+      packages = forAllSystems (system:
         let
+          pkgs = pkgsFor system;
           parallel-cli = pkgs.callPackage ./package.nix { };
         in
         {
-          packages = {
-            default = parallel-cli;
-            inherit parallel-cli;
-          };
+          default = parallel-cli;
+          inherit parallel-cli;
+        }
+      );
 
-          apps.default = {
-            type = "app";
-            program = "${parallel-cli}/bin/parallel-cli";
-          };
-
-          devShells.default = pkgs.mkShell {
-            buildInputs = [ parallel-cli ];
-          };
+      apps = forAllSystems (system: {
+        default = {
+          type = "app";
+          program = "${self.packages.${system}.parallel-cli}/bin/parallel-cli";
         };
+      });
 
-      flake = {
-        overlays.default = final: prev: {
-          parallel-cli = final.callPackage ./package.nix { };
-        };
+      devShells = forAllSystems (system:
+        let pkgs = pkgsFor system;
+        in {
+          default = pkgs.mkShell {
+            buildInputs = [ self.packages.${system}.parallel-cli ];
+          };
+        }
+      );
+
+      overlays.default = final: prev: {
+        parallel-cli = final.callPackage ./package.nix { };
       };
     };
 }
