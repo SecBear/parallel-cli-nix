@@ -9,7 +9,7 @@
 }:
 
 let
-  version = "0.0.14";
+  version = "0.1.1";
   repo = "parallel-web/parallel-web-tools";
 
   platformMap = {
@@ -20,10 +20,10 @@ let
   };
 
   hashes = {
-    "linux-x64" = "sha256:8dfd190adb1b82a448a27ddf215a0a6dcf3c3140f267bba6a394b9b39052e659";
-    "linux-arm64" = "sha256:308192754f4e807682a88a9f78309a69f4cdbf8bfe8f4ee61c1fa1486b722c15";
-    "darwin-x64" = "sha256:03743582ec8d2dc2ffb9670d8dc205c94b138241cc52b8865e3d1ff543a6e2e7";
-    "darwin-arm64" = "sha256:ec190c814d717b1daa7c0de739800dbfd29793882cd32542999b0e4cc9a4bfb3";
+    "linux-x64" = "sha256:13464ce0f146168fc75aaa244eda714e7916a027af91b94f015a7e86f981c6f3";
+    "linux-arm64" = "sha256:1c3d208e6898366e8f18b525b95bdff5bd0f6e9c0fec56fe42d65058c7108213";
+    "darwin-x64" = "sha256:9f1c96558a54ae529ffb628f22cdc8dd507bb66ba49a7fe6be21589b8c4e442b";
+    "darwin-arm64" = "sha256:b35b410b3268994b5cd1c179f21cdf5e60f6b3d30e944544817fa0359e988e50";
   };
 
   platform = platformMap.${stdenv.hostPlatform.system}
